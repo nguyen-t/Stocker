@@ -5,8 +5,9 @@ const TxtMsg = require('./txtmsg.js');
 const SITE = {
   'Amazon': 'https://amazon.com',
   'BestBuy': 'https://www.bestbuy.com',
-  'BnH': 'https://www.bhphotovideo.com/'
-}
+  'BnH': 'https://www.bhphotovideo.com',
+  'Newegg': 'https://www.newegg.com'
+};
 const AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36';
 const INTERVAL = 30000;
 
@@ -209,8 +210,44 @@ async function BnH(ids, messenger) {
   }, INTERVAL);
 }
 
+async function Newegg(itemNums, messenger) {
+  let page = (await pages.next()).value;
+
+  return setInterval(async () => {
+    for(itemNum of itemNums) {
+      if(!(await page.goto(SITE.Newegg + `/p/${itemNum}`)).ok()) {
+        continue;
+      }
+
+      await page.waitForSelector('h1.product-title');
+      await page.waitForSelector('div.product-inventory');
+
+      let header = await page.$('h1.product-title');
+      let div = await page.$('div.product-inventory');
+      let name = await page.evaluate(element => {
+        let text = element.innerText;
+
+        return text;
+      }, header);
+      let stocked = await page.evaluate(element => {
+        let text = element.innerText;
+
+        return text.includes('OUT OF STOCK.')
+          ? false
+          : true;
+      }, div);
+
+      if(stocked) {
+        messenger?.sendAll(`${name}\n${page.url()}`);
+      }
+      console.log(`[${time()}][Newegg] ${name}: ${colorText(stocked)}`);
+    }
+  }, INTERVAL);
+}
+
 module.exports = {
   "Amazon": Amazon,
   "BestBuy": BestBuy,
   "BnH": BnH,
+  "Newegg": Newegg
 };

@@ -9,3 +9,4 @@ let messenger = new TxtMsg(credentials.email, credentials.password)
 Stocker.Amazon(products.amazon, messenger);
 Stocker.BestBuy(products.bestbuy, messenger);
 Stocker.BnH(products.bnh, messenger);
+Stocker.Newegg(products.newegg, messenger);
