@@ -1,0 +1,16 @@
+{
+  "name": "stocker",
+  "version": "1.0.0",
+  "description": "Checks BestBuy inventory",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^2.6.1",
+    "nodemailer": "^6.4.17",
+    "puppeteer": "^5.5.0"
+  }
+}
