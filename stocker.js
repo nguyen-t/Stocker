@@ -8,16 +8,21 @@ const SITE = {
   'BnH': 'https://www.bhphotovideo.com/'
 }
 const AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36';
+const INTERVAL = 30000;
 
-function colorText(status) {
+/*
+ * @Param Boolean for in stock
+ */
+// Makes terminal output colorful
+function colorText(stocked) {
   const RED = '\033[38;2;255;0;0m';
   const GRN = '\033[38;2;0;255;0m';
   const RST = '\033[0m';
 
-  if(status === 'In Stock') {
-    return `${GRN}${status}${RST}`;
-  } else if(status == 'Out of Stock') {
-    return `${RED}${status}${RST}`
+  if(stocked) {
+    return `${GRN}In Stock${RST}`;
+  } else {
+    return `${RED}Out of Stock${RST}`
   }
 }
 
@@ -94,7 +99,10 @@ async function Amazon(asins, messenger) {
 
   return setInterval(async () => {
     for(asin of asins) {
-      await page.goto(SITE.Amazon + `/dp/${asin}`);
+      if(!(await page.goto(SITE.Amazon + `/dp/${asin}`)).ok()) {
+        continue;
+      }
+
       await page.waitForSelector('#productTitle');
       await page.waitForSelector('#availability');
 
@@ -105,20 +113,20 @@ async function Amazon(asins, messenger) {
 
         return text;
       }, header);
-      let status = await page.evaluate(element => {
+      let stocked = await page.evaluate(element => {
         let text = element.innerText;
 
         return text.includes('Currently unavailable') || text.includes('Available from these sellers.')
-          ? 'Out of Stock'
-          : 'In Stock';
+          ? false
+          : true;
       }, div);
 
-      if(status != 'Out of Stock') {
+      if(stocked) {
         messenger?.sendAll(`${name}\n${page.url()}`);
       }
-      console.log(`[${time()}][Amazon] ${name}: ${colorText(status)}`);
+      console.log(`[${time()}][Amazon] ${name}: ${colorText(stocked)}`);
     }
-  }, 30000);
+  }, INTERVAL);
 }
 
 /*
@@ -131,7 +139,10 @@ async function BestBuy(skus, messenger) {
 
   return setInterval(async () => {
     for(sku of skus) {
-      await page.goto(SITE.BestBuy + `/site/searchpage.jsp?st=${sku}&_dyncharset=UTF-8&_dynSessConf=&id=pcat17071&type=page&sc=Global&cp=1&nrp=&sp=&qp=&list=n&af=true&iht=y&usc=All+Categories&ks=960&keys=keys`);
+      if(!(await page.goto(SITE.BestBuy + `/site/searchpage.jsp?st=${sku}`)).ok()) {
+        continue;
+      }
+
       await page.waitForSelector('h1');
       await page.waitForSelector(`button[data-sku-id="${sku}"]`);
 
@@ -142,19 +153,20 @@ async function BestBuy(skus, messenger) {
 
         return text;
       }, header);
-      let status = await page.evaluate(element => {
+      let stocked = await page.evaluate(element => {
         let text = element.innerText;
 
         return text.includes('Sold Out')
-          ? 'Out of Stock'
-          : 'In Stock';
+          ? false
+          : true;
       }, button);
-      if(status != 'Out of Stock') {
+
+      if(stocked) {
         messenger?.sendAll(`${name}\n${page.url()}`);
       }
-      console.log(`[${time()}][BestBuy] ${name}: ${colorText(status)}`);
+      console.log(`[${time()}][BestBuy] ${name}: ${colorText(stocked)}`);
     }
-  }, 30000);
+  }, INTERVAL);
 }
 
 /*
@@ -167,7 +179,10 @@ async function BnH(ids, messenger) {
 
   return setInterval(async () => {
     for(id of ids) {
-      await page.goto(SITE.BnH + `/c/product/${id}`);
+      if(!(await page.goto(SITE.BnH + `/c/product/${id}`)).ok()) {
+        continue;
+      }
+
       await page.waitForSelector('h1[data-selenium="productTitle"]');
       await page.waitForSelector('div[data-selenium="stockInfo"]');
 
@@ -178,20 +193,20 @@ async function BnH(ids, messenger) {
 
         return text;
       }, header);
-      let status = await page.evaluate(element => {
+      let stocked = await page.evaluate(element => {
         let text = element.innerText;
 
         return text.includes('In Stock')
-          ? 'In Stock'
-          : 'Out of Stock';
+          ? true
+          : false;
       }, div);
 
-      if(status != 'Out of Stock') {
+      if(stocked) {
         messenger?.sendAll(`${name}\n${page.url()}`);
       }
-      console.log(`[${time()}][BH Photo Video] ${name}: ${colorText(status)}`);
+      console.log(`[${time()}][B&H Photo Video] ${name}: ${colorText(stocked)}`);
     }
-  }, 30000);
+  }, INTERVAL);
 }
 
 module.exports = {
