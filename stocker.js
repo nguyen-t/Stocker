@@ -106,7 +106,7 @@ async function BestBuy(skus, callbacks) {
 
   return setInterval(async () => {
     for(sku of skus) {
-      if(!(await page.goto(SITE.BestBuy + `/site/searchpage.jsp?st=${sku}`)).ok()) {
+      if(!(await page.goto(SITE.BestBuy + `/site/${sku}.p`)).ok()) {
         continue;
       }
 

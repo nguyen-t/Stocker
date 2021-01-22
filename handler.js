@@ -39,25 +39,16 @@ function consolePrint(page, name, stocked) {
   let hostname = new URL(page.url()).hostname;
   let source;
 
-  switch(hostname) {
-    case 'amazon.com':
-      source = 'Amazon';
-      break;
-
-    case 'bestbuy.com':
-      source = 'BestBuy';
-      break;
-
-    case 'bhphotovideo.com':
-      source = 'B&H Photo Video';
-      break;
-
-    case 'newegg.com':
-      cource = 'Newegg';
-      break;
-
-    default:
-      source = hostname.substring(0, hostname.lastIndexOf('.'));
+  if(hostname.includes('amazon.com')) {
+    source = 'Amazon';
+  } else if(hostname.includes('bestbuy.com')) {
+    source = 'BestBuy';
+  } else if(hostname.includes('bhphotovideo.com')) {
+    source = 'B&H Photo Video';
+  } else if(hostname.includes('newegg.com')) {
+    cource = 'Newegg';
+  } else {
+    source = hostname.substring(0, hostname.lastIndexOf('.'));
   }
 
   console.log(`[${time()}][${source}] ${name}: ${colorText(stocked)}`);
