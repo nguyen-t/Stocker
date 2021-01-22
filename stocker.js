@@ -11,22 +11,6 @@ const SITE = {
 const AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36';
 const INTERVAL = 30000;
 
-/*
- * @Param Boolean for in stock
- */
-// Makes terminal output colorful
-function colorText(stocked) {
-  const RED = '\033[38;2;255;0;0m';
-  const GRN = '\033[38;2;0;255;0m';
-  const RST = '\033[0m';
-
-  if(stocked) {
-    return `${GRN}In Stock${RST}`;
-  } else {
-    return `${RED}Out of Stock${RST}`
-  }
-}
-
 // Hides the fact that we're using puppeteer
 function hide() {
   Object.defineProperty(navigator, 'webdriver', {
@@ -73,29 +57,12 @@ const pages = (async function* pager() {
   }
 })();
 
-// Gets local time
-function time() {
-  const options = {
-    'year': 'numeric',
-    'month': 'numeric',
-    'day': 'numeric',
-    'hour': 'numeric',
-    'minute': 'numeric',
-    'second': 'numeric',
-    'hour12': false,
-    'timeZoneName': 'short'
-  };
-  const formatter = new Intl.DateTimeFormat('en-US', options).format;
-
-  return formatter(new Date());
-}
-
 /*
  * @Param Array of ASINs
- * @Param TxtMsg instance
+ * @Param Callback function
  */
 // Monitors Amazon inventory based on ASINs
-async function Amazon(asins, messenger) {
+async function Amazon(asins, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
@@ -122,10 +89,9 @@ async function Amazon(asins, messenger) {
           : true;
       }, div);
 
-      if(stocked) {
-        messenger?.sendAll(`${name}\n${page.url()}`);
+      for(let cb of callbacks) {
+        cb(page, name, stocked);
       }
-      console.log(`[${time()}][Amazon] ${name}: ${colorText(stocked)}`);
     }
   }, INTERVAL);
 }
@@ -135,7 +101,7 @@ async function Amazon(asins, messenger) {
  * @Param TxtMsg instance
  */
 // Monitors BestBuy inventory based on SKUs
-async function BestBuy(skus, messenger) {
+async function BestBuy(skus, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
@@ -162,20 +128,19 @@ async function BestBuy(skus, messenger) {
           : true;
       }, button);
 
-      if(stocked) {
-        messenger?.sendAll(`${name}\n${page.url()}`);
+      for(let cb of callbacks) {
+        cb(page, name, stocked);
       }
-      console.log(`[${time()}][BestBuy] ${name}: ${colorText(stocked)}`);
     }
   }, INTERVAL);
 }
 
 /*
  * @Param Array of BH URL IDs
- * @Param TxtMsg instance
+ * @Param Callback function
  */
 // Monitors B&H Photo Video inventory based on IDs
-async function BnH(ids, messenger) {
+async function BnH(ids, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
@@ -202,15 +167,20 @@ async function BnH(ids, messenger) {
           : false;
       }, div);
 
-      if(stocked) {
-        messenger?.sendAll(`${name}\n${page.url()}`);
+      for(let cb of callbacks) {
+        cb(page, name, stocked);
       }
-      console.log(`[${time()}][B&H Photo Video] ${name}: ${colorText(stocked)}`);
     }
   }, INTERVAL);
 }
 
-async function Newegg(itemNums, messenger) {
+
+/*
+ * @Param Array of Newegg item numbers
+ * @Param Callback function
+ */
+// Monitors B&H Photo Video inventory based on IDs
+async function Newegg(itemNums, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
@@ -237,10 +207,9 @@ async function Newegg(itemNums, messenger) {
           : true;
       }, div);
 
-      if(stocked) {
-        messenger?.sendAll(`${name}\n${page.url()}`);
+      for(let cb of callbacks) {
+        cb(page, name, stocked);
       }
-      console.log(`[${time()}][Newegg] ${name}: ${colorText(stocked)}`);
     }
   }, INTERVAL);
 }
