@@ -46,7 +46,7 @@ function consolePrint(page, name, stocked) {
   } else if(hostname.includes('bhphotovideo.com')) {
     source = 'B&H Photo Video';
   } else if(hostname.includes('newegg.com')) {
-    cource = 'Newegg';
+    source = 'Newegg';
   } else {
     source = hostname.substring(0, hostname.lastIndexOf('.'));
   }
