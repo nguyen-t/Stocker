@@ -3,6 +3,7 @@ const TxtMsg = require('./txtmsg.js');
 
 // Convenient constants
 const SITE = {
+  'Adorama': 'https://adorama.com',
   'Amazon': 'https://amazon.com',
   'BestBuy': 'https://www.bestbuy.com',
   'BnH': 'https://www.bhphotovideo.com',
@@ -59,15 +60,57 @@ const pages = (async function* pager() {
 })();
 
 /*
+ * @Param Array of SKUs
+ * @Param Callback functions
+ */
+// Monitors Adorama inventory based on SKUs
+async function Adorama(skus, callbacks) {
+  let page = (await pages.next()).value;
+
+  return setInterval(async () => {
+    for(let sku of skus) {
+      try {
+        if(!(await page.goto(SITE.Adorama + `/${sku}.html`)).ok()) {
+          continue;
+        }
+      } catch(e) {
+        continue;
+      }
+
+	    console.log(sku.toUpperCase());
+      await page.waitForSelector('.primary-info > h1');
+      await page.waitForSelector(`${sku.toUpperCase()}_btn`);
+
+      let header = await page.$('.primary-info > h1');
+      let button = await page.$(`${sku.toUpperCase()}_btn`);
+      let name = await page.evaluate(element => {
+        let text = element.innerText;
+
+        return text;
+      }, header);
+      let stocked = await page.evaluate(element => {
+        let text = element.innerText;
+
+        return !text.includes('Temporarily not available');
+      }, button);
+
+      for(let cb of callbacks) {
+        cb(page, name, stocked);
+      }
+    }
+  }, INTERVAL);
+}
+
+/*
  * @Param Array of ASINs
- * @Param Callback function
+ * @Param Callback functions
  */
 // Monitors Amazon inventory based on ASINs
 async function Amazon(asins, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
-    for(asin of asins) {
+    for(let asin of asins) {
       try {
         if(!(await page.goto(SITE.Amazon + `/dp/${asin}`)).ok()) {
           continue;
@@ -89,9 +132,7 @@ async function Amazon(asins, callbacks) {
       let stocked = await page.evaluate(element => {
         let text = element.innerText;
 
-        return text.includes('Currently unavailable') || text.includes('Available from these sellers.')
-          ? false
-          : true;
+        return !(text.includes('Currently unavailable') || text.includes('Available from these sellers.'));
       }, div);
 
       for(let cb of callbacks) {
@@ -103,18 +144,18 @@ async function Amazon(asins, callbacks) {
 
 /*
  * @Param Array of SKUs
- * @Param TxtMsg instance
+ * @Param Callback functions
  */
 // Monitors BestBuy inventory based on SKUs
 async function BestBuy(skus, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
-    for(sku of skus) {
+    for(let sku of skus) {
       try {
         if(!(await page.goto(SITE.BestBuy + `/site/${sku}.p`)).ok()) {
           continue;
-        }
+       }
       } catch(e) {
         continue;
       }
@@ -132,9 +173,7 @@ async function BestBuy(skus, callbacks) {
       let stocked = await page.evaluate(element => {
         let text = element.innerText;
 
-        return text.includes('Sold Out')
-          ? false
-          : true;
+        return !text.includes('Sold Out');
       }, button);
 
       for(let cb of callbacks) {
@@ -146,14 +185,14 @@ async function BestBuy(skus, callbacks) {
 
 /*
  * @Param Array of BH URL IDs
- * @Param Callback function
+ * @Param Callback functions
  */
 // Monitors B&H Photo Video inventory based on IDs
 async function BnH(ids, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
-    for(id of ids) {
+    for(let id of ids) {
       try {
         if(!(await page.goto(SITE.BnH + `/c/product/${id}`)).ok()) {
           continue;
@@ -175,9 +214,7 @@ async function BnH(ids, callbacks) {
       let stocked = await page.evaluate(element => {
         let text = element.innerText;
 
-        return text.includes('In Stock')
-          ? true
-          : false;
+        return text.includes('In Stock');
       }, div);
 
       for(let cb of callbacks) {
@@ -190,14 +227,14 @@ async function BnH(ids, callbacks) {
 
 /*
  * @Param Array of Newegg item numbers
- * @Param Callback function
+ * @Param Callback functions
  */
 // Monitors Newegg inventory based on item numbers
 async function Newegg(itemNums, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
-    for(itemNum of itemNums) {
+    for(let itemNum of itemNums) {
       try {
         if(!(await page.goto(SITE.Newegg + `/p/${itemNum}`)).ok()) {
           continue;
@@ -219,9 +256,7 @@ async function Newegg(itemNums, callbacks) {
       let stocked = await page.evaluate(element => {
         let text = element.innerText;
 
-        return text.includes('OUT OF STOCK.')
-          ? false
-          : true;
+        return !text.includes('OUT OF STOCK.');
       }, div);
 
       for(let cb of callbacks) {
@@ -233,14 +268,14 @@ async function Newegg(itemNums, callbacks) {
 
 /*
  * @Param Array of Office Depot item numbers
- * @Param Callback function
+ * @Param Callback functions
  */
 // Monitors Office Depot inventory based on item numbers
 async function OfficeDepot(itemNums, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
-    for(itemNum of itemNums) {
+    for(let itemNum of itemNums) {
       try {
         if(!(await page.goto(SITE.OfficeDepot + `/a/products/${itemNum}`)).ok()) {
           continue;
@@ -262,9 +297,7 @@ async function OfficeDepot(itemNums, callbacks) {
       let stocked = await page.evaluate(element => {
         let text = element.innerText;
 
-        return text.includes('Out of stock')
-          ? false
-          : true;
+        return !text.includes('Out of stock');
       }, div);
 
       for(let cb of callbacks) {
@@ -275,9 +308,11 @@ async function OfficeDepot(itemNums, callbacks) {
 }
 
 module.exports = {
+  'Adorama': Adorama,
   'Amazon': Amazon,
   'BestBuy': BestBuy,
   'BnH': BnH,
   'Newegg': Newegg,
   'OfficeDepot': OfficeDepot
 };
+ 

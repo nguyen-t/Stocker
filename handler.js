@@ -39,7 +39,9 @@ function consolePrint(page, name, stocked) {
   let hostname = new URL(page.url()).hostname;
   let source;
 
-  if(hostname.includes('amazon.com')) {
+  if(hostname.includes('adorama.com')) {
+    source = 'Adorama';
+  } else if(hostname.includes('amazon.com')) {
     source = 'Amazon';
   } else if(hostname.includes('bestbuy.com')) {
     source = 'BestBuy';
