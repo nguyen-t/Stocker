@@ -158,7 +158,7 @@ async function BnH(ids, callbacks) {
         if(!(await page.goto(SITE.BnH + `/c/product/${id}`)).ok()) {
           continue;
         }
-       catch(e) {
+      } catch(e) {
         continue;
       }
 
