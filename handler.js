@@ -47,6 +47,8 @@ function consolePrint(page, name, stocked) {
     source = 'B&H Photo Video';
   } else if(hostname.includes('newegg.com')) {
     source = 'Newegg';
+  } else if(hostname.includes('officedepot.com')) {
+    source = 'Office Depot';
   } else {
     source = hostname.substring(0, hostname.lastIndexOf('.'));
   }
