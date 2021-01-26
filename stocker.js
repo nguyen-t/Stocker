@@ -6,10 +6,11 @@ const SITE = {
   'Amazon': 'https://amazon.com',
   'BestBuy': 'https://www.bestbuy.com',
   'BnH': 'https://www.bhphotovideo.com',
-  'Newegg': 'https://www.newegg.com'
+  'Newegg': 'https://www.newegg.com',
+  'OfficeDepot': 'https://www.officedepot.com'
 };
 const AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36';
-const INTERVAL = 30000;
+const INTERVAL = 15000;
 
 // Hides the fact that we're using puppeteer
 function hide() {
@@ -67,7 +68,11 @@ async function Amazon(asins, callbacks) {
 
   return setInterval(async () => {
     for(asin of asins) {
-      if(!(await page.goto(SITE.Amazon + `/dp/${asin}`)).ok()) {
+      try {
+        if(!(await page.goto(SITE.Amazon + `/dp/${asin}`)).ok()) {
+          continue;
+        }
+      } catch(e) {
         continue;
       }
 
@@ -106,7 +111,11 @@ async function BestBuy(skus, callbacks) {
 
   return setInterval(async () => {
     for(sku of skus) {
-      if(!(await page.goto(SITE.BestBuy + `/site/${sku}.p`)).ok()) {
+      try {
+        if(!(await page.goto(SITE.BestBuy + `/site/${sku}.p`)).ok()) {
+          continue;
+        }
+      } catch(e) {
         continue;
       }
 
@@ -145,7 +154,11 @@ async function BnH(ids, callbacks) {
 
   return setInterval(async () => {
     for(id of ids) {
-      if(!(await page.goto(SITE.BnH + `/c/product/${id}`)).ok()) {
+      try {
+        if(!(await page.goto(SITE.BnH + `/c/product/${id}`)).ok()) {
+          continue;
+        }
+       catch(e) {
         continue;
       }
 
@@ -179,13 +192,17 @@ async function BnH(ids, callbacks) {
  * @Param Array of Newegg item numbers
  * @Param Callback function
  */
-// Monitors B&H Photo Video inventory based on IDs
+// Monitors Newegg inventory based on item numbers
 async function Newegg(itemNums, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
     for(itemNum of itemNums) {
-      if(!(await page.goto(SITE.Newegg + `/p/${itemNum}`)).ok()) {
+      try {
+        if(!(await page.goto(SITE.Newegg + `/p/${itemNum}`)).ok()) {
+          continue;
+        }
+      } catch(e) {
         continue;
       }
 
@@ -214,9 +231,53 @@ async function Newegg(itemNums, callbacks) {
   }, INTERVAL);
 }
 
+/*
+ * @Param Array of Office Depot item numbers
+ * @Param Callback function
+ */
+// Monitors Office Depot inventory based on item numbers
+async function OfficeDepot(itemNums, callbacks) {
+  let page = (await pages.next()).value;
+
+  return setInterval(async () => {
+    for(itemNum of itemNums) {
+      try {
+        if(!(await page.goto(SITE.OfficeDepot + `/a/products/${itemNum}`)).ok()) {
+          continue;
+        }
+      } catch(e) {
+        continue;
+      }
+
+      await page.waitForSelector('#skuHeading');
+      await page.waitForSelector('#skuAvailability');
+
+      let header = await page.$('#skuHeading');
+      let div = await page.$('#skuAvailability');
+      let name = await page.evaluate(element => {
+        let text = element.innerText;
+
+        return text;
+      }, header);
+      let stocked = await page.evaluate(element => {
+        let text = element.innerText;
+
+        return text.includes('Out of stock')
+          ? false
+          : true;
+      }, div);
+
+      for(let cb of callbacks) {
+        cb(page, name, stocked);
+      }
+    }
+  }, INTERVAL);
+}
+
 module.exports = {
-  "Amazon": Amazon,
-  "BestBuy": BestBuy,
-  "BnH": BnH,
-  "Newegg": Newegg
+  'Amazon': Amazon,
+  'BestBuy': BestBuy,
+  'BnH': BnH,
+  'Newegg': Newegg,
+  'OfficeDepot': OfficeDepot
 };
