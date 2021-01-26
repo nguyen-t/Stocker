@@ -12,3 +12,4 @@ Stocker.Amazon(products.amazon, callbacks);
 Stocker.BestBuy(products.bestbuy, callbacks);
 Stocker.BnH(products.bnh, callbacks);
 Stocker.Newegg(products.newegg, callbacks);
+Stocker.OfficeDepot(products.officedepot, callbacks);
