@@ -39,8 +39,9 @@ function hide() {
 // Generator function that creates a new page with universal settings
 const pages = (async function* pager() {
   let browser = await puppeteer.launch({
-    'headless': true,
-    'defaultViewport': null
+    'headless': false,
+    'defaultViewport': null,
+    'ignoreDefaultArgs': ['--enable-automation']
   });
   let context = browser.defaultBrowserContext();
 
@@ -77,7 +78,6 @@ async function Adorama(skus, callbacks) {
         continue;
       }
 
-	    console.log(sku.toUpperCase());
       await page.waitForSelector('.primary-info > h1');
       await page.waitForSelector(`${sku.toUpperCase()}_btn`);
 
