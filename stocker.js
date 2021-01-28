@@ -11,7 +11,7 @@ const SITE = {
   'OfficeDepot': 'https://www.officedepot.com'
 };
 const AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36';
-const INTERVAL = 15000;
+const INTERVAL = 30000;
 
 // Hides the fact that we're using puppeteer
 function hide() {
@@ -39,7 +39,7 @@ function hide() {
 // Generator function that creates a new page with universal settings
 const pages = (async function* pager() {
   let browser = await puppeteer.launch({
-    'headless': false,
+    'headless': true,
     'defaultViewport': null,
     'ignoreDefaultArgs': ['--enable-automation']
   });
@@ -315,4 +315,3 @@ module.exports = {
   'Newegg': Newegg,
   'OfficeDepot': OfficeDepot
 };
- 
