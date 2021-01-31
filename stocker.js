@@ -47,6 +47,15 @@ const pages = (async function* pager() {
 
   context.overridePermissions(SITE.BestBuy, ['geolocation']);
 
+  let zero = (await browser.pages())[0];
+  await zero.evaluateOnNewDocument(hide);
+  await zero.setUserAgent(AGENT);
+
+  zero.setDefaultNavigationTimeout(0);
+  zero.setDefaultTimeout(0);
+
+  yield zero;
+
   while(true) {
     let page = await browser.newPage();
 
