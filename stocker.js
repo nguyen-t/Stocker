@@ -47,7 +47,7 @@ function hide() {
 // Generator function that creates a new page with universal settings
 const pages = (async function* pager() {
   let browser = await puppeteer.launch({
-    'headless': false,
+    'headless': true,
     'defaultViewport': null,
     ignoreHTTPSErrors: true,
     'args': [
@@ -87,42 +87,66 @@ const pages = (async function* pager() {
   }
 })();
 
+async function queryPage(url, nameSelector, itemSelector, textCompare) {
+  let page = (await pages.next()).value;
+
+  return (async () => {
+    if(!(await page.goto(url)).ok()) {
+      return null;
+    }
+
+    await page.waitForSelector(nameSelector);
+    await page.waitForSelector(itemSelector);
+
+    let nameElement = await page.$(nameSelector);
+    let itemElement = await page.$(itemSelector);
+    let name = await page.evaluate(element => {
+      return element.innerText;
+    }, nameElement);
+    let stocked = await page.evaluate(element => {
+      return element.innerText.includes(textCompare);
+    }, itemElement);
+
+    return [name, stocked];
+  });
+}
+
 /*
  * @Param Array of SKUs
  * @Param Callback functions
  */
 // Monitors Adorama inventory based on SKUs
-async function Adorama(skus, callbacks) {
+async function Adorama(sku, callbacks) {
   let page = (await pages.next()).value;
 
   return setInterval(async () => {
     for(let sku of skus) {
       try {
         if(!(await page.goto(SITE.Adorama + `/${sku}.html`)).ok()) {
-          continue;
+          yield;
+        }
+
+        await page.waitForSelector('.primary-info > h1');
+        await page.waitForSelector(`#${sku.toUpperCase()}_btn`);
+
+        let header = await page.$('.primary-info > h1');
+        let button = await page.$(`#${sku.toUpperCase()}_btn`);
+        let name = await page.evaluate(element => {
+          let text = element.innerText;
+
+          return text;
+        }, header);
+        let stocked = await page.evaluate(element => {
+          let text = element.innerText;
+
+          return !text.includes('Temporarily not available');
+        }, button);
+
+        for(let cb of callbacks) {
+          cb(page, name, stocked);
         }
       } catch(e) {
         continue;
-      }
-
-      await page.waitForSelector('.primary-info > h1');
-      await page.waitForSelector(`#${sku.toUpperCase()}_btn`);
-
-      let header = await page.$('.primary-info > h1');
-      let button = await page.$(`#${sku.toUpperCase()}_btn`);
-      let name = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return text;
-      }, header);
-      let stocked = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return !text.includes('Temporarily not available');
-      }, button);
-
-      for(let cb of callbacks) {
-        cb(page, name, stocked);
       }
     }
   }, INTERVAL);
