@@ -8,13 +8,21 @@ const SITE = {
   'BestBuy': 'https://www.bestbuy.com',
   'BnH': 'https://www.bhphotovideo.com',
   'Newegg': 'https://www.newegg.com',
-  'OfficeDepot': 'https://www.officedepot.com'
+  'OfficeDepot': 'https://www.officedepot.com',
+  'Staples': 'https://www.staples.com'
 };
 const AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36';
+const PERMISSIONS = ['notifications', 'geolocation'];
 const INTERVAL = 30000;
 
 // Hides the fact that we're using puppeteer
 function hide() {
+  Object.defineProperty(navigator, "languages", {
+    get: function() {
+      return ["en-US", "en"];
+    }
+  });
+
   Object.defineProperty(navigator, 'webdriver', {
     "get": () => false,
   });
@@ -39,13 +47,24 @@ function hide() {
 // Generator function that creates a new page with universal settings
 const pages = (async function* pager() {
   let browser = await puppeteer.launch({
-    'headless': true,
+    'headless': false,
     'defaultViewport': null,
-    'ignoreDefaultArgs': ['--enable-automation']
+    ignoreHTTPSErrors: true,
+    'args': [
+      '--no-sandbox',
+      '--disable-notifications',
+      '--disable-setuid-sandbox',
+      '--disable-infobars',
+      '--window-position=0,0',
+      '--ignore-certifcate-errors',
+      '--ignore-certifcate-errors-spki-list',
+      `--user-agent="${AGENT}"`
+    ]
   });
   let context = browser.defaultBrowserContext();
 
-  context.overridePermissions(SITE.BestBuy, ['geolocation']);
+  context.overridePermissions(SITE.Adorama, PERMISSIONS);
+  context.overridePermissions(SITE.BestBuy, PERMISSIONS);
 
   let zero = (await browser.pages())[0];
   await zero.evaluateOnNewDocument(hide);
@@ -60,7 +79,6 @@ const pages = (async function* pager() {
     let page = await browser.newPage();
 
     await page.evaluateOnNewDocument(hide);
-    await page.setUserAgent(AGENT);
 
     page.setDefaultNavigationTimeout(0);
     page.setDefaultTimeout(0);
@@ -88,10 +106,10 @@ async function Adorama(skus, callbacks) {
       }
 
       await page.waitForSelector('.primary-info > h1');
-      await page.waitForSelector(`${sku.toUpperCase()}_btn`);
+      await page.waitForSelector(`#${sku.toUpperCase()}_btn`);
 
       let header = await page.$('.primary-info > h1');
-      let button = await page.$(`${sku.toUpperCase()}_btn`);
+      let button = await page.$(`#${sku.toUpperCase()}_btn`);
       let name = await page.evaluate(element => {
         let text = element.innerText;
 
@@ -307,6 +325,48 @@ async function OfficeDepot(itemNums, callbacks) {
         let text = element.innerText;
 
         return !text.includes('Out of stock');
+      }, div);
+
+      for(let cb of callbacks) {
+        cb(page, name, stocked);
+      }
+    }
+  }, INTERVAL);
+}
+
+/*
+ * @Param Array of Staples item numbers
+ * @Param Callback functions
+ */
+// Monitors Staples inventory based on item numbers
+// Work in progress
+async function Staples(itemNums, callbacks) {
+  let page = (await pages.next()).value;
+
+  return setInterval(async () => {
+    for(let itemNum of itemNums) {
+      try {
+        if(!(await page.goto(SITE.Staples + `/product_${itemNum}`)).ok()) {
+          continue;
+        }
+      } catch(e) {
+        continue;
+      }
+
+      await page.waitForSelector('#productTitle');
+      await page.waitForSelector('#skuAvailability'); // Needs to be changed
+
+      let header = await page.$('#productTitle');
+      let div = await page.$('#skuAvailability'); // Needs to be changed
+      let name = await page.evaluate(element => {
+        let text = element.innerText;
+
+        return text;
+      }, header);
+      let stocked = await page.evaluate(element => {
+        let text = element.innerText;
+
+        return !text.includes('Out of stock'); // Needs to be changed
       }, div);
 
       for(let cb of callbacks) {
