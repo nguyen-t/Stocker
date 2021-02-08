@@ -230,13 +230,12 @@ async function* BnH(id, callbacks) {
   let itemName = (await query.next()).value;
 
   if(itemName == null) {
-    console.log("FAIL");
     return;
   }
 
   while(true) {
     let itemStatus = (await query.next()).value;
-    let inStock = !(itemStatus?.includes('Sold Out'));
+    let inStock = itemStatus?.includes('In Stock');
 
     if(itemStatus !== undefined) {
       for(let callback of callbacks) {
@@ -266,7 +265,7 @@ async function* Newegg(itemNum, callbacks) {
 
   while(true) {
     let itemStatus = (await query.next()).value;
-    let inStock = !(itemStatus?.includes('Sold Out'));
+    let inStock = !(itemStatus?.includes('OUT OF STOCK.'));
 
     if(itemStatus !== undefined) {
       for(let callback of callbacks) {
@@ -283,7 +282,7 @@ async function* Newegg(itemNum, callbacks) {
  */
 // Monitors Office Depot inventory based on item numbers
 async function* OfficeDepot(itemNum, callbacks) {
-  let url = SITE.BestBuy + `/site/${sku}.p`;
+  let url = SITE.OfficeDepot + `/a/products/${itemNum}`;
   let nameSelector = '#skuHeading';
   let itemSelector = '#skuAvailability';
   let query = queryPage(url, nameSelector, itemSelector);
@@ -296,7 +295,7 @@ async function* OfficeDepot(itemNum, callbacks) {
 
   while(true) {
     let itemStatus = (await query.next()).value;
-    let inStock = !(itemStatus?.includes('Sold Out'));
+    let inStock = !(itemStatus?.includes('Out of stock'));
 
     if(itemStatus !== undefined) {
       for(let callback of callbacks) {
@@ -314,7 +313,7 @@ async function* OfficeDepot(itemNum, callbacks) {
 // Monitors Staples inventory based on item numbers
 // Work in progress
 async function* Staples(itemNum, callbacks) {
-  let url = SITE.OfficeDepot + `/a/products/${itemNum}`;
+  let url = SITE.Staples + `products_/${itemNum}`;
   let nameSelector = '#productTitle';
   let itemSelector = '#skuAvailability';
   let query = queryPage(url, nameSelector, itemSelector);
