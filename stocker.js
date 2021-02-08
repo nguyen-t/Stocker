@@ -222,10 +222,10 @@ async function* BestBuy(sku, callbacks) {
  * @Param Callback functions
  */
 // Monitors B&H Photo Video inventory based on IDs
-async function* BnH(ids, callbacks) {
+async function* BnH(id, callbacks) {
   let url = SITE.BnH + `/c/product/${id}`;
   let nameSelector = 'h1[data-selenium="productTitle"]';
-  let itemSelector = 'div[data-selenium="stockInfo"]'';
+  let itemSelector = 'div[data-selenium="stockInfo"]';
   let query = queryPage(url, nameSelector, itemSelector);
   let itemName = (await query.next()).value;
 
@@ -252,7 +252,7 @@ async function* BnH(ids, callbacks) {
  * @Param Callback functions
  */
 // Monitors Newegg inventory based on item numbers
-async function* Newegg(itemNums, callbacks) {
+async function* Newegg(itemNum, callbacks) {
   let url = SITE.Newegg + `/p/${itemNum}`;
   let nameSelector = 'h1.product-title';
   let itemSelector = 'div.product-inventory';
@@ -282,7 +282,7 @@ async function* Newegg(itemNums, callbacks) {
  * @Param Callback functions
  */
 // Monitors Office Depot inventory based on item numbers
-async function* OfficeDepot(itemNums, callbacks) {
+async function* OfficeDepot(itemNum, callbacks) {
   let url = SITE.BestBuy + `/site/${sku}.p`;
   let nameSelector = '#skuHeading';
   let itemSelector = '#skuAvailability';
@@ -313,7 +313,7 @@ async function* OfficeDepot(itemNums, callbacks) {
  */
 // Monitors Staples inventory based on item numbers
 // Work in progress
-async function* Staples(itemNums, callbacks) {
+async function* Staples(itemNum, callbacks) {
   let url = SITE.OfficeDepot + `/a/products/${itemNum}`;
   let nameSelector = '#productTitle';
   let itemSelector = '#skuAvailability';
