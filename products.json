@@ -1,8 +1,9 @@
 {
-  "adorama": ["ev8gp53663", "ev8gp53667"],
-  "amazon": [],
-  "bestbuy": ["6439402", "6444445", "6429442"],
-  "bnh": [],
-  "newegg": [],
-  "officedepot": ["3973362"]
+  "Adorama": ["ev8gp53663", "ev8gp53667"],
+  "Amazon": [],
+  "BestBuy": ["6439402", "6444445", "6429442"],
+  "BnH": [],
+  "Newegg": [],
+  "OfficeDepot": ["3973362"],
+  "Staples": []
 }

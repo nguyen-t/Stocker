@@ -13,7 +13,7 @@ const SITE = {
 };
 const AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36';
 const PERMISSIONS = ['notifications', 'geolocation'];
-const INTERVAL = 30000;
+const TIMEOUT = 0;
 
 // Hides the fact that we're using puppeteer
 function hide() {
@@ -45,9 +45,9 @@ function hide() {
 
 // Initializes only a single browser
 // Generator function that creates a new page with universal settings
-const pages = (async function* pager() {
+const pages = (async function*() {
   let browser = await puppeteer.launch({
-    'headless': true,
+    'headless': false,
     'defaultViewport': null,
     ignoreHTTPSErrors: true,
     'args': [
@@ -67,11 +67,11 @@ const pages = (async function* pager() {
   context.overridePermissions(SITE.BestBuy, PERMISSIONS);
 
   let zero = (await browser.pages())[0];
-  await zero.evaluateOnNewDocument(hide);
-  await zero.setUserAgent(AGENT);
 
-  zero.setDefaultNavigationTimeout(0);
-  zero.setDefaultTimeout(0);
+  await zero.evaluateOnNewDocument(hide);
+
+  zero.setDefaultNavigationTimeout(TIMEOUT);
+  zero.setDefaultTimeout(TIMEOUT);
 
   yield zero;
 
@@ -80,76 +80,82 @@ const pages = (async function* pager() {
 
     await page.evaluateOnNewDocument(hide);
 
-    page.setDefaultNavigationTimeout(0);
-    page.setDefaultTimeout(0);
+    page.setDefaultNavigationTimeout(TIMEOUT);
+    page.setDefaultTimeout(TIMEOUT);
 
     yield page;
   }
 })();
 
-async function queryPage(url, nameSelector, itemSelector, textCompare) {
+async function* queryPage(url, nameSelector, itemSelector) {
   let page = (await pages.next()).value;
 
-  return (async () => {
+  try {
     if(!(await page.goto(url)).ok()) {
-      return null;
+      await page.close();
+      return;
     }
 
     await page.waitForSelector(nameSelector);
-    await page.waitForSelector(itemSelector);
 
     let nameElement = await page.$(nameSelector);
-    let itemElement = await page.$(itemSelector);
-    let name = await page.evaluate(element => {
+    let itemName = await page.evaluate(element => {
       return element.innerText;
     }, nameElement);
-    let stocked = await page.evaluate(element => {
-      return element.innerText.includes(textCompare);
-    }, itemElement);
 
-    return [name, stocked];
-  });
+    yield itemName;
+  } catch(e) {
+    await page.close();
+    return;
+  }
+
+  while(true) {
+    try {
+      if(!(await page.goto(url)).ok()) {
+        yield;
+      }
+
+      await page.waitForSelector(itemSelector);
+
+      let itemElement = await page.$(itemSelector);
+      let itemStatus = await page.evaluate(element => {
+        return element.innerText;
+      }, itemElement);
+
+      yield itemStatus;
+    } catch(e) {
+      yield;
+    }
+  }
 }
 
 /*
- * @Param Array of SKUs
+ * @Param SKU
  * @Param Callback functions
  */
-// Monitors Adorama inventory based on SKUs
-async function Adorama(sku, callbacks) {
-  let page = (await pages.next()).value;
+// Monitors Adorama inventory based on SKU
+async function* Adorama(sku, callbacks) {
+  let url = SITE.Adorama + `/${sku}.html`;
+  let nameSelector = '.primary-info > h1';
+  let itemSelector = `#${sku.toUpperCase()}_btn`;
+  let query = queryPage(url, nameSelector, itemSelector);
+  let itemName = (await query.next()).value;
 
-  return setInterval(async () => {
-    for(let sku of skus) {
-      try {
-        if(!(await page.goto(SITE.Adorama + `/${sku}.html`)).ok()) {
-          yield;
-        }
+  if(itemName == null) {
+    return;
+  }
 
-        await page.waitForSelector('.primary-info > h1');
-        await page.waitForSelector(`#${sku.toUpperCase()}_btn`);
+  while(true) {
+    let itemStatus = (await query.next()).value;
+    let inStock = !(itemStatus?.includes('Temporarily not available'));
 
-        let header = await page.$('.primary-info > h1');
-        let button = await page.$(`#${sku.toUpperCase()}_btn`);
-        let name = await page.evaluate(element => {
-          let text = element.innerText;
-
-          return text;
-        }, header);
-        let stocked = await page.evaluate(element => {
-          let text = element.innerText;
-
-          return !text.includes('Temporarily not available');
-        }, button);
-
-        for(let cb of callbacks) {
-          cb(page, name, stocked);
-        }
-      } catch(e) {
-        continue;
+    if(itemStatus !== undefined) {
+      for(let callback of callbacks) {
+        callback(url, itemName, inStock);
       }
     }
-  }, INTERVAL);
+    yield;
+  }
 }
 
 /*
@@ -157,40 +163,28 @@ async function Adorama(sku, callbacks) {
  * @Param Callback functions
  */
 // Monitors Amazon inventory based on ASINs
-async function Amazon(asins, callbacks) {
-  let page = (await pages.next()).value;
+async function* Amazon(asin, callbacks) {
+  let url = SITE.Amazon + `/dp/${asin}`;
+  let nameSelector = '#productTitle';
+  let itemSelector = `#availability`;
+  let query = queryPage(url, nameSelector, itemSelector);
+  let itemName = (await query.next()).value;
 
-  return setInterval(async () => {
-    for(let asin of asins) {
-      try {
-        if(!(await page.goto(SITE.Amazon + `/dp/${asin}`)).ok()) {
-          continue;
-        }
-      } catch(e) {
-        continue;
-      }
+  if(itemName == null) {
+    return;
+  }
 
-      await page.waitForSelector('#productTitle');
-      await page.waitForSelector('#availability');
+  while(true) {
+    let itemStatus = (await query.next()).value;
+    let inStock = !(itemStatus?.includes('Currently unavailable') || itemStatus?.includes('Available from these sellers.'));
 
-      let header = await page.$('#productTitle');
-      let div = await page.$('#availability');
-      let name = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return text;
-      }, header);
-      let stocked = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return !(text.includes('Currently unavailable') || text.includes('Available from these sellers.'));
-      }, div);
-
-      for(let cb of callbacks) {
-        cb(page, name, stocked);
+    if(itemStatus !== undefined) {
+      for(let callback of callbacks) {
+        callback(url, itemName, inStock);
       }
     }
-  }, INTERVAL);
+    yield;
+  }
 }
 
 /*
@@ -198,40 +192,29 @@ async function Amazon(asins, callbacks) {
  * @Param Callback functions
  */
 // Monitors BestBuy inventory based on SKUs
-async function BestBuy(skus, callbacks) {
-  let page = (await pages.next()).value;
+async function* BestBuy(sku, callbacks) {
+  let url = SITE.BestBuy + `/site/${sku}.p`;
+  let nameSelector = '.sku-title > h1';
+  let itemSelector = `button[data-sku-id="${sku}"]`;
+  let query = queryPage(url, nameSelector, itemSelector);
+  let itemName = (await query.next()).value;
 
-  return setInterval(async () => {
-    for(let sku of skus) {
-      try {
-        if(!(await page.goto(SITE.BestBuy + `/site/${sku}.p`)).ok()) {
-          continue;
-       }
-      } catch(e) {
-        continue;
-      }
+  if(itemName == null) {
+    console.log("FAIL");
+    return;
+  }
 
-      await page.waitForSelector('h1');
-      await page.waitForSelector(`button[data-sku-id="${sku}"]`);
+  while(true) {
+    let itemStatus = (await query.next()).value;
+    let inStock = !(itemStatus?.includes('Sold Out'));
 
-      let header = await page.$('h1');
-      let button = await page.$(`button[data-sku-id="${sku}"]`);
-      let name = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return text;
-      }, header);
-      let stocked = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return !text.includes('Sold Out');
-      }, button);
-
-      for(let cb of callbacks) {
-        cb(page, name, stocked);
+    if(itemStatus !== undefined) {
+      for(let callback of callbacks) {
+        callback(url, itemName, inStock);
       }
     }
-  }, INTERVAL);
+    yield;
+  }
 }
 
 /*
@@ -239,82 +222,59 @@ async function BestBuy(skus, callbacks) {
  * @Param Callback functions
  */
 // Monitors B&H Photo Video inventory based on IDs
-async function BnH(ids, callbacks) {
-  let page = (await pages.next()).value;
+async function* BnH(ids, callbacks) {
+  let url = SITE.BnH + `/c/product/${id}`;
+  let nameSelector = 'h1[data-selenium="productTitle"]';
+  let itemSelector = 'div[data-selenium="stockInfo"]'';
+  let query = queryPage(url, nameSelector, itemSelector);
+  let itemName = (await query.next()).value;
 
-  return setInterval(async () => {
-    for(let id of ids) {
-      try {
-        if(!(await page.goto(SITE.BnH + `/c/product/${id}`)).ok()) {
-          continue;
-        }
-      } catch(e) {
-        continue;
-      }
+  if(itemName == null) {
+    console.log("FAIL");
+    return;
+  }
 
-      await page.waitForSelector('h1[data-selenium="productTitle"]');
-      await page.waitForSelector('div[data-selenium="stockInfo"]');
+  while(true) {
+    let itemStatus = (await query.next()).value;
+    let inStock = !(itemStatus?.includes('Sold Out'));
 
-      let header = await page.$('h1[data-selenium="productTitle"]');
-      let div = await page.$('div[data-selenium="stockInfo"]');
-      let name = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return text;
-      }, header);
-      let stocked = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return text.includes('In Stock');
-      }, div);
-
-      for(let cb of callbacks) {
-        cb(page, name, stocked);
+    if(itemStatus !== undefined) {
+      for(let callback of callbacks) {
+        callback(url, itemName, inStock);
       }
     }
-  }, INTERVAL);
+    yield;
+  }
 }
-
 
 /*
  * @Param Array of Newegg item numbers
  * @Param Callback functions
  */
 // Monitors Newegg inventory based on item numbers
-async function Newegg(itemNums, callbacks) {
-  let page = (await pages.next()).value;
+async function* Newegg(itemNums, callbacks) {
+  let url = SITE.Newegg + `/p/${itemNum}`;
+  let nameSelector = 'h1.product-title';
+  let itemSelector = 'div.product-inventory';
+  let query = queryPage(url, nameSelector, itemSelector);
+  let itemName = (await query.next()).value;
 
-  return setInterval(async () => {
-    for(let itemNum of itemNums) {
-      try {
-        if(!(await page.goto(SITE.Newegg + `/p/${itemNum}`)).ok()) {
-          continue;
-        }
-      } catch(e) {
-        continue;
-      }
+  if(itemName == null) {
+    console.log("FAIL");
+    return;
+  }
 
-      await page.waitForSelector('h1.product-title');
-      await page.waitForSelector('div.product-inventory');
+  while(true) {
+    let itemStatus = (await query.next()).value;
+    let inStock = !(itemStatus?.includes('Sold Out'));
 
-      let header = await page.$('h1.product-title');
-      let div = await page.$('div.product-inventory');
-      let name = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return text;
-      }, header);
-      let stocked = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return !text.includes('OUT OF STOCK.');
-      }, div);
-
-      for(let cb of callbacks) {
-        cb(page, name, stocked);
+    if(itemStatus !== undefined) {
+      for(let callback of callbacks) {
+        callback(url, itemName, inStock);
       }
     }
-  }, INTERVAL);
+    yield;
+  }
 }
 
 /*
@@ -322,40 +282,29 @@ async function Newegg(itemNums, callbacks) {
  * @Param Callback functions
  */
 // Monitors Office Depot inventory based on item numbers
-async function OfficeDepot(itemNums, callbacks) {
-  let page = (await pages.next()).value;
+async function* OfficeDepot(itemNums, callbacks) {
+  let url = SITE.BestBuy + `/site/${sku}.p`;
+  let nameSelector = '#skuHeading';
+  let itemSelector = '#skuAvailability';
+  let query = queryPage(url, nameSelector, itemSelector);
+  let itemName = (await query.next()).value;
 
-  return setInterval(async () => {
-    for(let itemNum of itemNums) {
-      try {
-        if(!(await page.goto(SITE.OfficeDepot + `/a/products/${itemNum}`)).ok()) {
-          continue;
-        }
-      } catch(e) {
-        continue;
-      }
+  if(itemName == null) {
+    console.log("FAIL");
+    return;
+  }
 
-      await page.waitForSelector('#skuHeading');
-      await page.waitForSelector('#skuAvailability');
+  while(true) {
+    let itemStatus = (await query.next()).value;
+    let inStock = !(itemStatus?.includes('Sold Out'));
 
-      let header = await page.$('#skuHeading');
-      let div = await page.$('#skuAvailability');
-      let name = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return text;
-      }, header);
-      let stocked = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return !text.includes('Out of stock');
-      }, div);
-
-      for(let cb of callbacks) {
-        cb(page, name, stocked);
+    if(itemStatus !== undefined) {
+      for(let callback of callbacks) {
+        callback(url, itemName, inStock);
       }
     }
-  }, INTERVAL);
+    yield;
+  }
 }
 
 /*
@@ -364,40 +313,29 @@ async function OfficeDepot(itemNums, callbacks) {
  */
 // Monitors Staples inventory based on item numbers
 // Work in progress
-async function Staples(itemNums, callbacks) {
-  let page = (await pages.next()).value;
+async function* Staples(itemNums, callbacks) {
+  let url = SITE.OfficeDepot + `/a/products/${itemNum}`;
+  let nameSelector = '#productTitle';
+  let itemSelector = '#skuAvailability';
+  let query = queryPage(url, nameSelector, itemSelector);
+  let itemName = (await query.next()).value;
 
-  return setInterval(async () => {
-    for(let itemNum of itemNums) {
-      try {
-        if(!(await page.goto(SITE.Staples + `/product_${itemNum}`)).ok()) {
-          continue;
-        }
-      } catch(e) {
-        continue;
-      }
+  if(itemName == null) {
+    console.log("FAIL");
+    return;
+  }
 
-      await page.waitForSelector('#productTitle');
-      await page.waitForSelector('#skuAvailability'); // Needs to be changed
+  while(true) {
+    let itemStatus = (await query.next()).value;
+    let inStock = !(itemStatus?.includes('Out of stock'));
 
-      let header = await page.$('#productTitle');
-      let div = await page.$('#skuAvailability'); // Needs to be changed
-      let name = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return text;
-      }, header);
-      let stocked = await page.evaluate(element => {
-        let text = element.innerText;
-
-        return !text.includes('Out of stock'); // Needs to be changed
-      }, div);
-
-      for(let cb of callbacks) {
-        cb(page, name, stocked);
+    if(itemStatus !== undefined) {
+      for(let callback of callbacks) {
+        callback(url, itemName, inStock);
       }
     }
-  }, INTERVAL);
+    yield;
+  }
 }
 
 module.exports = {

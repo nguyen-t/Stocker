@@ -35,8 +35,8 @@ function colorText(stocked) {
 }
 
 // Callback for printing to console
-function consolePrint(page, name, stocked) {
-  let hostname = new URL(page.url()).hostname;
+function consolePrint(url, name, stocked) {
+  let hostname = new URL(url).hostname;
   let source;
 
   if(hostname.includes('adorama.com')) {
@@ -60,9 +60,9 @@ function consolePrint(page, name, stocked) {
 
 // Callback for sending a text message
 function toText(messenger) {
-  return (page, name, stocked) => {
+  return (url, name, stocked) => {
     if(stocked) {
-      messenger?.sendAll(`${name}\n${page.url()}`);
+      messenger?.sendAll(`${name}\n${url}`);
     }
   };
 }
