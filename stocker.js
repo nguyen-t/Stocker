@@ -47,7 +47,7 @@ function hide() {
 // Generator function that creates a new page with universal settings
 const pages = (async function*() {
   let browser = await puppeteer.launch({
-    'headless': false,
+    'headless': true,
     'defaultViewport': null,
     ignoreHTTPSErrors: true,
     'args': [

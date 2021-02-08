@@ -6,7 +6,7 @@ const products = require('./products.json')
 
 let messenger = new TxtMsg(credentials.email, credentials.password)
   .add(credentials.phone, credentials.carrier);
-let callbacks = [handler.consolePrint]//, handler.toText(messenger)];
+let callbacks = [handler.consolePrint, handler.toText(messenger)];
 
 /* Adorama and B&H need captcha handlers*/
 let fx = [];
