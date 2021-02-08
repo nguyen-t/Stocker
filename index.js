@@ -6,10 +6,9 @@ const products = require('./products.json')
 
 let messenger = new TxtMsg(credentials.email, credentials.password)
   .add(credentials.phone, credentials.carrier);
-let callbacks = [handler.consolePrint, handler.toText(messenger)];
+let callbacks = [handler.consolePrint]//, handler.toText(messenger)];
 
 /* Adorama and B&H need captcha handlers*/
-
 let fx = [];
 
 Object.keys(products).forEach((key) => {
@@ -24,10 +23,3 @@ setInterval(async () => {
   }
   await Promise.allSettled(fx);
 }, 30000);
-
-// Stocker.Adorama(products.adorama, callbacks);
-// Stocker.Amazon(products.amazon, callbacks);
-// Stocker.BestBuy(products.bestbuy, callbacks);
-// Stocker.BnH(products.bnh, callbacks);
-// Stocker.Newegg(products.newegg, callbacks);
-// Stocker.OfficeDepot(products.officedepot, callbacks);
