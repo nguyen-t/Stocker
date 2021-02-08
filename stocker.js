@@ -200,7 +200,6 @@ async function* BestBuy(sku, callbacks) {
   let itemName = (await query.next()).value;
 
   if(itemName == null) {
-    console.log("FAIL");
     return;
   }
 
@@ -259,7 +258,6 @@ async function* Newegg(itemNum, callbacks) {
   let itemName = (await query.next()).value;
 
   if(itemName == null) {
-    console.log("FAIL");
     return;
   }
 
@@ -289,7 +287,6 @@ async function* OfficeDepot(itemNum, callbacks) {
   let itemName = (await query.next()).value;
 
   if(itemName == null) {
-    console.log("FAIL");
     return;
   }
 
@@ -320,7 +317,6 @@ async function* Staples(itemNum, callbacks) {
   let itemName = (await query.next()).value;
 
   if(itemName == null) {
-    console.log("FAIL");
     return;
   }
 
