@@ -12,8 +12,6 @@ let callbacks = [handler.consolePrint, handler.toText(messenger)];
 /* Adorama and B&H need captcha handlers*/
 let fx = [];
 
-cart.BestBuy('https://www.bestbuy.com/site/apple-airpods-pro-white/5706659.p?skuId=5706659', null, true);
-cart.BestBuy('https://www.bestbuy.com/site/apple-airpods-pro-white/5706659.p?skuId=5706659', null, true);
 Object.keys(products).forEach((key) => {
   products[key].forEach(async (id) => {
     fx.push(await Stocker[key]?.(id, callbacks));
