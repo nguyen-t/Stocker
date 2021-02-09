@@ -205,7 +205,8 @@ async function* BestBuy(sku, callbacks) {
 
   while(true) {
     let itemStatus = (await query.next()).value;
-    let inStock = !(itemStatus?.includes('Sold Out') || itemStatus?.includes('Coming Soon')); 
+    let inStock = (itemStatus?.includes('Add to Cart'));
+    // let inStock = !(itemStatus?.includes('Sold Out') || itemStatus?.includes('Coming Soon'));
 
     if(itemStatus !== undefined) {
       for(let callback of callbacks) {

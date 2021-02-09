@@ -3,6 +3,7 @@ const TxtMsg = require('./txtmsg.js');
 const handler = require('./handler.js');
 const credentials = require('./credentials.json');
 const products = require('./products.json')
+const cart = require('./cart.js');
 
 let messenger = new TxtMsg(credentials.email, credentials.password)
   .add(credentials.phone, credentials.carrier);
@@ -11,6 +12,8 @@ let callbacks = [handler.consolePrint, handler.toText(messenger)];
 /* Adorama and B&H need captcha handlers*/
 let fx = [];
 
+cart.BestBuy('https://www.bestbuy.com/site/apple-airpods-pro-white/5706659.p?skuId=5706659', null, true);
+cart.BestBuy('https://www.bestbuy.com/site/apple-airpods-pro-white/5706659.p?skuId=5706659', null, true);
 Object.keys(products).forEach((key) => {
   products[key].forEach(async (id) => {
     fx.push(await Stocker[key]?.(id, callbacks));
@@ -21,5 +24,4 @@ setInterval(async () => {
   for(let f of fx) {
     f?.next();
   }
-  await Promise.allSettled(fx);
 }, 30000);
