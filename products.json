@@ -1,8 +1,9 @@
 {
-  "adorama": ["ev8gp53663", "ev8gp53667"],
-  "amazon": [],
-  "bestbuy": ["6439402", "6444445", "6429442"],
-  "bnh": [],
-  "newegg": [],
-  "officedepot": ["3973362"]
+  "Adorama": ["ev8gp53663", "ev8gp53667", "astrx308010g", "astr3080o10g"],
+  "Amazon": ["B08PW559LL"],
+  "BestBuy": ["6439402", "6429442", "6437912"],
+  "BnH": ["1602755-REG"],
+  "Newegg": ["N82E16814932379"],
+  "OfficeDepot": ["3973362"],
+  "Staples": []
 }
