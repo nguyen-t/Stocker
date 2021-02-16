@@ -2,7 +2,7 @@ const express = require('express');
 const Stocker = require('./stocker.js');
 const TxtMsg = require('./txtmsg.js');
 const handler = require('./handler.js');
-const credentials = require('./credentials.json') || process.env;
+const credentials = process.env;
 const products = require('./limited.json');
 const cart = require('./cart.js');
 
