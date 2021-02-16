@@ -9,7 +9,7 @@
   },
   "engine": {
     "node": "15.x"
-  }
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
