@@ -3,9 +3,8 @@ const Stocker = require('./stocker.js');
 const TxtMsg = require('./txtmsg.js');
 const auth = require('./auth.js');
 const handler = require('./handler.js');
-const credentials = require('./credentials.json');
 const products = require('./limited.json');
-const cart = require('./cart.js');
+const credentials = require('./credentials.json') ?? process.env;
 
 const PORT = process.env.PORT || 3000;
 const app = express();
