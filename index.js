@@ -12,7 +12,6 @@ const app = express();
 
 async function monitor() {
   let account = await auth(credentials.email, credentials.client_id, credentials.client_secret, credentials.refresh_token);
-  console.log(account);
   let messenger = new TxtMsg(account)
     .add(credentials.phone, credentials.carrier);
   let callbacks = [handler.consolePrint, handler.toText(messenger)];
@@ -34,10 +33,10 @@ async function monitor() {
 
 }
 
-monitor();
-
 app.get('/', (req, res) => {
   res.write('Hello');
 });
 
-app.listen(PORT);
+app.listen(PORT, async () => {
+  await monitor();
+});
