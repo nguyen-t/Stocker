@@ -33,7 +33,7 @@ async function monitor() {
 }
 
 app.get('/', (req, res) => {
-  res.write('Hello');
+  res.send('Hello');
 });
 
 app.listen(PORT, async () => {
