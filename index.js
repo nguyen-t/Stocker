@@ -4,7 +4,7 @@ const TxtMsg = require('./txtmsg.js');
 const auth = require('./auth.js');
 const handler = require('./handler.js');
 const products = require('./limited.json');
-const credentials = process.env;
+const credentials = require('./credentials.json');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
