@@ -1,35 +1,43 @@
 const express = require('express');
 const Stocker = require('./stocker.js');
 const TxtMsg = require('./txtmsg.js');
+const auth = require('./auth.js');
 const handler = require('./handler.js');
-const credentials = process.env;
+const credentials = require('./credentials.json');
 const products = require('./limited.json');
 const cart = require('./cart.js');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
 
-let messenger = new TxtMsg(credentials.email, credentials.password)
-  .add(credentials.phone, credentials.carrier);
-let callbacks = [handler.consolePrint, handler.toText(messenger)];
+async function monitor() {
+  let account = await auth(credentials.email, credentials.client_id, credentials.client_secret, credentials.refresh_token);
+  console.log(account);
+  let messenger = new TxtMsg(account)
+    .add(credentials.phone, credentials.carrier);
+  let callbacks = [handler.consolePrint, handler.toText(messenger)];
 
-/* Adorama and B&H need captcha handlers*/
-let fx = [];
+  /* Adorama and B&H need captcha handlers*/
+  let fx = [];
 
-Object.keys(products).forEach((key) => {
-  products[key].forEach(async (id) => {
-    fx.push(await Stocker[key]?.(id, callbacks));
+  Object.keys(products).forEach((key) => {
+    products[key].forEach(async (id) => {
+      fx.push(await Stocker[key]?.(id, callbacks));
+    });
   });
-});
 
-setInterval(async () => {
-  for(let f of fx) {
-    f?.next();
-  }
-}, 30000);
+  setInterval(async () => {
+    for(let f of fx) {
+      f?.next();
+    }
+  }, 30000);
+
+}
+
+monitor();
 
 app.get('/', (req, res) => {
-  res.send('Online.');
+  res.write('Hello');
 });
 
 app.listen(PORT);

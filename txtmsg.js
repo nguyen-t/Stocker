@@ -8,6 +8,7 @@ const CARRIER = {
   'SPRINT': '@pm.sprint.com'
 };
 
+
 // General purpose error handling
 function error(err) {
   if(err) {
@@ -28,19 +29,15 @@ class TxtMsg {
    *
    */
   // Builds nodemailer transport and verifies
-  constructor(email, password) {
-    this.sender = email;
+  constructor(auth) {
+    this.sender = auth.user;
     this.transport = nodemailer.createTransport({
       'service': 'gmail',
-      'auth': {
-        'user': email,
-        'pass': password
-      },
+      'auth': auth,
       'tls': {
-        'rejectUnAuthorized': true
+        'rejectUnauthorized': false
       }
     });
-
     this.transport.verify(error);
   }
 
