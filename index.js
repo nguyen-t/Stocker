@@ -1,13 +1,10 @@
-const express = require('express');
+const { Worker } = require('worker_threads');
 const Stocker = require('./stocker.js');
 const TxtMsg = require('./txtmsg.js');
 const auth = require('./auth.js');
 const handler = require('./handler.js');
 const products = require('./limited.json');
 const credentials = process.env;
-
-const PORT = process.env.PORT || 3000;
-const app = express();
 
 async function monitor() {
   let account = await auth(credentials.email, credentials.client_id, credentials.client_secret, credentials.refresh_token);
@@ -32,10 +29,5 @@ async function monitor() {
 
 }
 
-app.get('/', (req, res) => {
-  res.write('Hello');
-});
-
-app.listen(PORT, async () => {
-  await monitor();
-});
+let worker = new Worker('./server.js');
+monitor();
